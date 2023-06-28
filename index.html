@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .numerictd {
+            text-align: right;
+        }
+
+        table {
+            border-left: solid black 1px;
+            border-top: solid black 1px;
+            border-spacing: 0 0;
+        }
+
+        td,
+        th {
+            border-right: solid black 1px;
+            border-bottom: solid black 1px;
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Installment plan calculator</h1>
+    <p>Fix the bug that the plan shows the final period with a negative amount, and also fix so that the payment date is always the first in the month.</p>
+    <p>Use any means of help, but you should be able to explain and answer questions on how this application works, and also explain how you fixed the issues.</p>
+
+    <table>
+        <tr>
+            <td>Principal amount</td>
+            <td><input id="principalinput" type="number" value="100000" /></td>
+        </tr>
+        <tr>
+            <td>Number of periods</td>
+            <td><input id="numberofperiodsinput" type="number" value="24" /></td>
+        </tr>
+        <tr>
+            <td>Interest</td>
+            <td><input id="interestratepercentageinput" type="number" value="5" /></td>
+        </tr>
+        </tr>
+    </table>
+    <h3>Installment plan</h3>
+    <template id="installmentrowtemplate">
+        <tr>
+            <td class="installmentrow_period"></td>
+            <td class="installmentrow_paymentdate"></td>
+            <td class="installmentrow_totalpayment numerictd"></td>
+            <td class="installmentrow_principalpayment numerictd"></td>
+            <td class="installmentrow_cumulativeinterest numerictd"></td>
+            <td class="installmentrow_outstandingbalance numerictd"></td>
+        </tr>
+    </template>
+    <table>
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th>Payment date</th>
+                <th>Total payment</th>
+                <th>Principal payment</th>
+                <th>Cumulative interest</th>
+                <th>Outstanding balance</th>
+            </tr>
+        </thead>
+        <tbody id="installmentplantablebody">
+
+        </tbody>
+    </table>
+</body>
+<script type="module">
+
+    function calculateAmortizationSchedule(principal, numPeriods, annualInterestRate, startDate) {
+        const monthlyInterestRate = annualInterestRate / 12 / 100;
+        const monthlyPayment = (principal * monthlyInterestRate) / (1 - Math.pow(1 + monthlyInterestRate, -numPeriods));
+
+        let schedule = [];
+        let remainingBalance = principal;
+
+        let paymentDate = new Date(startDate);
+
+        for (let i = 0; i <= numPeriods; i++) {
+            let interestPayment = remainingBalance * monthlyInterestRate;
+            let principalPayment = monthlyPayment - interestPayment;
+            remainingBalance -= principalPayment;
+
+            schedule.push({
+                period: i,
+                paymentDate: new Date(paymentDate),
+                totalPayment: monthlyPayment,
+                principalPayment: principalPayment,
+                interestPayment: interestPayment,
+                remainingBalance: remainingBalance
+            });
+            paymentDate.setMonth(paymentDate.getMonth() + 1);
+        }
+
+        return schedule;
+    }
+
+    const principalinput = document.getElementById('principalinput');
+    const numberofperiodsinput = document.getElementById('numberofperiodsinput');
+    const interestratepercentageinput = document.getElementById('interestratepercentageinput');
+
+    const recalculateInstallmentPlan = () => {
+        const installmentplantablebody = document.getElementById('installmentplantablebody');
+        while (installmentplantablebody.lastElementChild) {
+            installmentplantablebody.removeChild(installmentplantablebody.lastElementChild);
+        }
+        const installmentrowtemplate = document.getElementById('installmentrowtemplate');
+
+        const installmentplan = calculateAmortizationSchedule(parseFloat(principalinput.value), parseInt(numberofperiodsinput.value), parseFloat(interestratepercentageinput.value), new Date());
+
+        installmentplan.forEach(period => {
+            const row = installmentrowtemplate.cloneNode(true).content;
+            row.querySelector('.installmentrow_period').innerHTML = period.period;
+            row.querySelector('.installmentrow_paymentdate').innerHTML = period.paymentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+            row.querySelector('.installmentrow_totalpayment').innerHTML = period.totalPayment.toFixed(2);
+            row.querySelector('.installmentrow_principalpayment').innerHTML = period.principalPayment.toFixed(2);
+            row.querySelector('.installmentrow_cumulativeinterest').innerHTML = period.interestPayment.toFixed(2);
+            row.querySelector('.installmentrow_outstandingbalance').innerHTML = period.remainingBalance.toFixed(2);
+            installmentplantablebody.appendChild(row);
+        });
+
+
+    };
+    principalinput.addEventListener('change', () => recalculateInstallmentPlan());
+    numberofperiodsinput.addEventListener('change', () => recalculateInstallmentPlan());
+    interestratepercentageinput.addEventListener('change', () => recalculateInstallmentPlan());
+    recalculateInstallmentPlan();
+</script>
+
+</html>
